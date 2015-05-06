@@ -60,7 +60,7 @@ initGame = Game initCube initPipe
 
 game :: SF AppInput Game
 game = proc input -> do
-    cube <- fallingCube initCube -< input
+    cube <- flappingCube initCube -< input
     let pipe = initPipe
     returnA -< Game cube pipe
 
@@ -69,6 +69,14 @@ fallingCube (Cube y0 v0) = proc _ -> do
     v <- imIntegral v0 -< -g
     y <- imIntegral y0 -< v
     returnA -< Cube y v
+
+flappingCube :: Cube -> SF AppInput Cube
+flappingCube cube0 = switch sf cont
+    where sf = proc input -> do
+              cube <- fallingCube cube0 -< ()
+              flap <- flapTrigger -< input
+              returnA -< (cube, flap `tag` cube)
+          cont (Cube y v) = flappingCube (Cube y (v + 300))
 
 -- < Rendering > ---------------------------------------------------------------
 
