@@ -71,7 +71,7 @@ checkCollision (Game (Cube y _) _) = y - cubeHeight < groundHeight
 gameSession :: SF AppInput Game
 gameSession = proc input -> do
     cube <- flappingCube initCube -< input
-    let pipe = initPipe
+    pipe <- movingPipe initPipe -< ()
     returnA -< Game cube pipe
 
 fallingCube :: Cube -> SF a Cube
@@ -87,6 +87,14 @@ flappingCube cube0 = switch sf cont
               flap <- flapTrigger -< input
               returnA -< (cube, flap `tag` cube)
           cont (Cube y v) = flappingCube (Cube y (v + 300))
+
+movingPipe :: Pipe -> SF a Pipe
+movingPipe (Pipe p0 h0) = switch sf (\_ -> movingPipe $ Pipe p0 h0)
+    where sf = proc _ -> do
+             p <- imIntegral p0 -< -100
+             respawn <- edge -< p < -pipeWidth
+             returnA -< (Pipe p h0, respawn)
+    
 
 -- < Rendering > ---------------------------------------------------------------
 
