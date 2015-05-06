@@ -59,7 +59,10 @@ initGame = Game initCube initPipe
 -- < Game logic > --------------------------------------------------------------
 
 game :: SF AppInput Game
-game = constant initGame
+game = proc input -> do
+    let cube = initCube
+    let pipe = initPipe
+    returnA -< Game cube pipe
 
 -- < Rendering > ---------------------------------------------------------------
 
