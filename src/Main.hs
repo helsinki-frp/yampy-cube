@@ -60,9 +60,15 @@ initGame = Game initCube initPipe
 
 game :: SF AppInput Game
 game = proc input -> do
-    let cube = initCube
+    cube <- fallingCube initCube -< input
     let pipe = initPipe
     returnA -< Game cube pipe
+
+fallingCube :: Cube -> SF a Cube
+fallingCube (Cube y0 v0) = proc _ -> do
+    v <- imIntegral v0 -< -g
+    y <- imIntegral y0 -< v
+    returnA -< Cube y v
 
 -- < Rendering > ---------------------------------------------------------------
 
