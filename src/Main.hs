@@ -59,7 +59,17 @@ initGame = Game initCube initPipe
 -- < Game logic > --------------------------------------------------------------
 
 game :: SF AppInput Game
-game = proc input -> do
+game = switch sf (\_ -> game)
+    where sf = proc input -> do
+              gameState <- gameSession -< input
+              gameOver <- edge -< checkCollision gameState
+              returnA -< (gameState, gameOver)
+
+checkCollision :: Game -> Bool
+checkCollision (Game (Cube y _) _) = y - cubeHeight < groundHeight
+
+gameSession :: SF AppInput Game
+gameSession = proc input -> do
     cube <- flappingCube initCube -< input
     let pipe = initPipe
     returnA -< Game cube pipe
