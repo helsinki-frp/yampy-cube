@@ -66,7 +66,14 @@ game = switch sf (\_ -> game)
               returnA -< (gameState, gameOver)
 
 checkCollision :: Game -> Bool
-checkCollision (Game (Cube y _) _) = y - cubeHeight < groundHeight
+checkCollision (Game (Cube cubeY _) (Pipe pipeX pipeHeight)) =
+    or [ collide (pipeHeight, pipeHeight)
+       , collide (winHeight, winHeight - pipeHeight - pipeGap)
+       , cubeY <= groundHeight + cubeHeight ]
+    where collide (y2, h2) = and [ cubeX + cubeWidth  > pipeX
+                                 , cubeX              < pipeX + pipeWidth
+                                 , cubeY              > y2 - h2
+                                 , cubeY - cubeHeight < y2 ]
 
 gameSession :: SF AppInput Game
 gameSession = proc input -> do
