@@ -8,6 +8,7 @@ import           Control.Monad
 import           Data.Colour.SRGB (toSRGB24, RGB(..))
 import           Data.Text (Text)
 import qualified Data.Vector.Storable as Vector
+import           Data.StateVar (($=))
 
 import           FRP.Yampa
 
@@ -33,8 +34,8 @@ animate title winWidth winHeight sf = do
     window <- SDL.createWindow title windowConf
     SDL.showWindow window
 
-    renderer <- SDL.createRenderer window (-1) rendererConf
-    SDL.setRenderDrawColor renderer (V4 maxBound maxBound maxBound maxBound)
+    renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
+    SDL.renderDrawColor renderer $= V4 maxBound maxBound maxBound maxBound
 
     lastInteraction <- newMVar =<< SDL.time
 
@@ -57,20 +58,14 @@ animate title winWidth winHeight sf = do
     SDL.quit
 
     where windowConf =
-              SDL.defaultWindow { SDL.windowSize = V2 (fromIntegral winWidth)
-                                                      (fromIntegral winHeight) }
-          rendererConf = SDL.RendererConfig
-              { SDL.rendererAccelerated   = True
-              , SDL.rendererSoftware      = False
-              , SDL.rendererTargetTexture = False
-              , SDL.rendererPresentVSync  = False
-              }
+              SDL.defaultWindow { SDL.windowInitialSize = V2 (fromIntegral winWidth)
+                                                             (fromIntegral winHeight) }
 
 renderObject :: SDL.Renderer -> Int -> Object -> IO ()
 renderObject renderer winHeight obj = setRenderAttrs >> renderShape
     where setRenderAttrs = do
               let (RGB r g b) = toSRGB24 $ objColour obj
-              SDL.setRenderDrawColor renderer (V4 r g b maxBound)
+              SDL.renderDrawColor renderer $= V4 r g b maxBound
           renderShape = case objShape obj of
               Rectangle x y -> SDL.renderFillRect renderer $ Just $
                                      SDL.Rectangle (P (V2 (toEnum $ floor px)

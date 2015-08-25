@@ -92,22 +92,24 @@ parseWinInput = accumHoldBy nextAppInput initAppInput
 --   FIXME: I am reinventing lenses once again
 nextAppInput :: AppInput -> SDL.EventPayload -> AppInput
 nextAppInput inp SDL.QuitEvent = inp { inpQuit = True }
-nextAppInput inp (SDL.MouseMotionEvent { SDL.mouseMotionEventPos = P (V2 x y) }) =
+nextAppInput inp (SDL.MouseMotionEvent ev) =
     inp { inpMousePos = (fromIntegral x, fromIntegral y) }
-nextAppInput inp (SDL.KeyboardEvent _ _ SDL.KeyPressed _ keysym) =
-    inp { inpKeyPressed = Just $ SDL.keysymScancode keysym }
-nextAppInput inp (SDL.KeyboardEvent _ _ SDL.KeyReleased _ _) =
-    inp { inpKeyPressed = Nothing }
-nextAppInput inp ev@(SDL.MouseButtonEvent{}) = inp { inpMouseLeft  = lmb
-                                                   , inpMouseRight = rmb }
+    where P (V2 x y) = SDL.mouseMotionEventPos ev
+nextAppInput inp (SDL.KeyboardEvent ev)
+    | SDL.keyboardEventKeyMotion ev == SDL.Pressed
+      = inp { inpKeyPressed = Just $ SDL.keysymScancode $ SDL.keyboardEventKeysym ev }
+    | SDL.keyboardEventKeyMotion ev == SDL.Released
+      = inp { inpKeyPressed = Nothing }
+nextAppInput inp (SDL.MouseButtonEvent ev) = inp { inpMouseLeft  = lmb
+                                                 , inpMouseRight = rmb }
     where motion = SDL.mouseButtonEventMotion ev
           button = SDL.mouseButtonEventButton ev
           pos    = inpMousePos inp
           inpMod = case (motion,button) of
-              (SDL.MouseButtonUp, SDL.ButtonLeft)    -> first (const Nothing)
-              (SDL.MouseButtonDown, SDL.ButtonLeft)  -> first (const (Just pos))
-              (SDL.MouseButtonUp, SDL.ButtonRight)   -> second (const Nothing)
-              (SDL.MouseButtonDown, SDL.ButtonRight) -> second (const (Just pos))
+              (SDL.Released, SDL.ButtonLeft)  -> first (const Nothing)
+              (SDL.Pressed, SDL.ButtonLeft)   -> first (const (Just pos))
+              (SDL.Released, SDL.ButtonRight) -> second (const Nothing)
+              (SDL.Pressed, SDL.ButtonRight)  -> second (const (Just pos))
               _                                      -> id
           (lmb,rmb) = inpMod $ (inpMouseLeft &&& inpMouseRight) inp
 
