@@ -59,7 +59,49 @@ initGame = Game initCube initPipe
 -- < Game logic > --------------------------------------------------------------
 
 game :: SF AppInput Game
-game = constant initGame
+game = switch sf (\_ -> game)
+    where sf = proc input -> do
+              gameState <- gameSession -< input
+              gameOver <- edge -< checkCollision gameState
+              returnA -< (gameState, gameOver)
+
+checkCollision :: Game -> Bool
+checkCollision (Game (Cube cubeY _) (Pipe pipeX pipeHeight)) =
+    or [ collide (pipeHeight, pipeHeight)
+       , collide (winHeight, winHeight - pipeHeight - pipeGap)
+       , cubeY <= groundHeight + cubeHeight ]
+    where collide (y2, h2) = and [ cubeX + cubeWidth  > pipeX
+                                 , cubeX              < pipeX + pipeWidth
+                                 , cubeY              > y2 - h2
+                                 , cubeY - cubeHeight < y2 ]
+
+gameSession :: SF AppInput Game
+gameSession = proc input -> do
+    cube <- flappingCube initCube -< input
+    pipe <- movingPipe initPipe -< ()
+    returnA -< Game cube pipe
+
+fallingCube :: Cube -> SF a Cube
+fallingCube (Cube y0 v0) = proc _ -> do
+    v <- imIntegral v0 -< -g
+    y <- imIntegral y0 -< v
+    returnA -< Cube y v
+
+flappingCube :: Cube -> SF AppInput Cube
+flappingCube cube0 = switch sf cont
+    where sf = proc input -> do
+              cube <- fallingCube cube0 -< ()
+              flap <- flapTrigger -< input
+              returnA -< (cube, flap `tag` cube)
+          cont (Cube y v) = flappingCube (Cube y (v + 300))
+
+movingPipe :: Pipe -> SF a Pipe
+movingPipe (Pipe p0 h0) = switch sf (\_ -> movingPipe $ Pipe p0 h0)
+    where sf = proc _ -> do
+             p <- imIntegral p0 -< -100
+             respawn <- edge -< p < -pipeWidth
+             returnA -< (Pipe p h0, respawn)
+    
 
 -- < Rendering > ---------------------------------------------------------------
 
