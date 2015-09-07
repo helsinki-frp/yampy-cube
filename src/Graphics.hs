@@ -35,7 +35,7 @@ animate title winWidth winHeight sf = do
     SDL.showWindow window
 
     renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
-    SDL.renderDrawColor renderer $= V4 maxBound maxBound maxBound maxBound
+    SDL.rendererDrawColor renderer $= V4 maxBound maxBound maxBound maxBound
 
     lastInteraction <- newMVar =<< SDL.time
 
@@ -48,7 +48,7 @@ animate title winWidth winHeight sf = do
         renderOutput changed (obj, shouldExit) = do
             when changed $ do
                 renderObject renderer winHeight obj
-                SDL.renderPresent renderer
+                SDL.present renderer
             return shouldExit
 
     reactimate (return NoEvent) senseInput renderOutput sf
@@ -65,16 +65,16 @@ renderObject :: SDL.Renderer -> Int -> Object -> IO ()
 renderObject renderer winHeight obj = setRenderAttrs >> renderShape
     where setRenderAttrs = do
               let (RGB r g b) = toSRGB24 $ objColour obj
-              SDL.renderDrawColor renderer $= V4 r g b maxBound
+              SDL.rendererDrawColor renderer $= V4 r g b maxBound
           renderShape = case objShape obj of
-              Rectangle x y -> SDL.renderFillRect renderer $ Just $
+              Rectangle x y -> SDL.fillRect renderer $ Just $
                                      SDL.Rectangle (P (V2 (toEnum $ floor px)
                                                           (toEnum $ winHeight - floor py)))
                                                    (V2 (toEnum x) (toEnum y))
               Scene objs -> do
-                  SDL.renderClear renderer
+                  SDL.clear renderer
                   mapM_ (renderObject renderer winHeight) objs
-              Circle r -> SDL.renderDrawPoints renderer $ Vector.fromList $
+              Circle r -> SDL.drawPoints renderer $ Vector.fromList $
                                 map (\(x,y) -> P (V2 (toEnum x) (toEnum y))) $
                                 translate (floor px, winHeight - floor py) $
                                 rasterCircle  r

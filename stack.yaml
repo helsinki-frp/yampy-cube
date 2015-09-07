@@ -1,8 +1,6 @@
 flags: {}
 packages:
   - '.'
-  - location:
-      git: https://github.com/haskell-game/sdl2
-      commit: bb2c4b6b52b48497f3271fc880dd1a0b11623ef7
-extra-deps: []
+extra-deps:
+  - sdl2-2.0.0
 resolver: lts-3.2
